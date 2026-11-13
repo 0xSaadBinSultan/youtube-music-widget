@@ -1,0 +1,18 @@
+/* Reduce navigation and menu animation work; keep loading indicators visible. */
+ytmusic-nav-bar,
+ytmusic-search-box,
+ytmusic-guide-renderer,
+ytmusic-section-list-renderer,
+ytmusic-responsive-list-item-renderer,
+ytmusic-two-row-item-renderer,
+ytmusic-menu-popup-renderer,
+tp-yt-iron-dropdown {
+  transition: none !important;
+  animation-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+ytmusic-nav-bar,
+ytmusic-menu-popup-renderer {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

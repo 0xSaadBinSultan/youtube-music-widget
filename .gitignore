@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+brave-profile/
+player-profile/
+.venv/
+.env
+position.json
+config.json
+client*.json
+*token*.json
+*oauth*.json
+*.log
