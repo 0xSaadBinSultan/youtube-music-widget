@@ -1,55 +1,108 @@
-# YouTube Music desktop bar
+# YouTube Music desktop remote
 
-A compact Android-style GTK3 bar for Kali/Debian XFCE X11, paired with [Pear Desktop](https://github.com/pear-devs/pear-desktop) (the standalone YouTube Music desktop client). Artwork sits on the left, with a single title/artist line and a flat control row. The background follows the artwork's colors. Right-click the artwork or title for its menu.
+[![Build checks](https://github.com/0xSaadBinSultan/youtube-music-widget/actions/workflows/desktop.yml/badge.svg)](https://github.com/0xSaadBinSultan/youtube-music-widget/actions/workflows/desktop.yml)
 
-![Sample widget layout](docs/preview.png)
+Desktop controls for [Pear Desktop](https://github.com/pear-devs/pear-desktop),
+an independently installed YouTube Music client. The new Qt remote works on
+**Windows, macOS and Linux**. The original GTK/XFCE wallpaper bar is still included.
 
-## Start listening
+![Portable remote using synthetic song information](docs/desktop-preview.png)
 
-1. Click the widget's play arrow, or open **YouTube Music (widget player)** from Applications.
-2. Sign in to the standalone player if you want your library, then choose a song.
-3. Close its window with X. The player hides to the tray and continues playing; the desktop widget remains connected. Brave can be fully closed.
-4. To stop the application entirely, use **Quit** in its own tray menu. Clicking play in an idle widget opens it again.
+| Platform | Remote interface | Player connection |
+| --- | --- | --- |
+| Windows 10/11 x64 | Qt window | Authenticated Pear local API |
+| macOS 14+, Intel / Apple Silicon | Qt window | Authenticated Pear local API |
+| Linux x64 X11 / Wayland | Qt window | Authenticated Pear local API |
+| Debian/Kali XFCE X11 | Original GTK wallpaper bar | Local MPRIS, original player installer |
 
-The music application must still run in the background, like a phone music app. The widget itself is a remote, not an audio streaming engine. The old shared-Brave and dedicated-Brave-profile backends are no longer used: ordinary YouTube tabs are never selected as a fallback.
+Qt windows support native dragging, resizing and adjustable transparency. Wallpaper
+pinning is specific to the original XFCE version. CI builds Windows x64, Linux x64
+and macOS Apple Silicon; check Actions for actual results. Source installations on
+other architectures depend on Qt and Pear availability. Android and iOS are not supported.
 
-The installation enables Pear's close-to-tray setting, Shortcuts/MPRIS plugin, and built-in blocking plugin. Blocking effectiveness depends on the upstream client and service behavior; no subscription features or ad-free guarantee are supplied by the widget. The local HTTP control server remains disabled. No YouTube API key, extra OAuth app, password copy or browser extension is needed.
+## Portable setup
 
-The installer also enables the client's performance option and adds a reduced-motion theme for menus and navigation. Hardware acceleration stays enabled. The laptop's battery/power profile is not changed; power-saving mode and network latency can still affect responsiveness.
+1. Install [Pear Desktop for your OS](https://github.com/pear-devs/pear-desktop/releases/latest)
+   from its official releases. Open it, sign in if desired, and choose a song.
+2. In Pear's plugins, enable **API Server**. Set its listening hostname to
+   **127.0.0.1**, keep authentication enabled (`AUTH_AT_FIRST`), and use port **26538**.
+   Pear versions can default to `0.0.0.0`; change that to `127.0.0.1` so your player
+   controls are local to your computer. Consult your installed version's `/swagger`
+   page for its API documentation.
+3. Install Python **3.11 or 3.12**, then run:
 
-## Controls and placement
-
-- Previous, play/pause and next use the standalone client's local [MPRIS interface](https://specifications.freedesktop.org/mpris/latest/Player_Interface.html).
-- Like/dislike icons match the reference layout but remain disabled: MPRIS does not expose rating actions. Rate songs in the music player itself.
-- Drag the artwork or title to move the bar.
-- Right-click → **Set position** saves a preferred location. **Reset position** returns to those exact coordinates, including near screen edges. Temporary moves do not overwrite the preferred location.
-- The bar sits below normal application windows and starts after login. Neither it nor the player needs Codex to remain open.
-
-The widget verifies the actual executable owning a media service and accepts only the locally installed Pear executable. The check is repeated immediately before sending commands. Missing or unverified processes are rejected.
-
-Artwork is decoded in memory. Song details and artwork are not saved, uploaded or logged by the widget. The player stores its own ordinary website/session data privately in `~/.local/share/laptop-music/player-profile`. Placement is stored in `~/.config/laptop-music/position.json`. Do not publish either directory. Any older `brave-profile` directory is preserved but unused.
-
-## Install
-
-Needs systemd user services, Python3, dpkg-deb, GTK3/PyGObject and Cairo (`python3-gi`, `python3-gi-cairo`, `gir1.2-gtk-3.0` on Debian/Kali). Run as your desktop user:
-
-```bash
+```sh
 git clone https://github.com/0xSaadBinSultan/youtube-music-widget.git
 cd youtube-music-widget
-python3 install-player.py
-python3 install.py
-laptop-music
+python install_desktop.py --run
 ```
 
-The player installer downloads the official **3.12.0 amd64 Linux release**, verifies its published SHA-256 digest, and extracts it under `~/.local/opt/pear-desktop`. It does not use sudo or alter Kali's installed packages. Other CPU architectures need the appropriate upstream release and checksum.
+Use `python3` on macOS/Linux if needed, or `py -3.12` on Windows. The helper
+installs dependencies in this checkout's `.venv`; it does not install Pear or
+change its settings. Rerun the same command to launch again.
 
-The launcher uses an existing root-owned Chromium sandbox helper, when available, through `CHROME_DEVEL_SANDBOX`; it does not add `--no-sandbox`. The current laptop has this helper installed with Brave; Brave itself does not need to run. A fresh machine must provide working Electron sandbox support and the normal desktop/audio runtime libraries.
+4. Click **Pair with Pear**, then approve the connection dialog in Pear Desktop.
+   Pairing can wait up to two minutes. The remote stores the returned local token
+   privately and then polls the current track every two seconds.
+5. Use Previous, Play/Pause and Next. Pear must remain running. Closing this remote
+   exits only the remote; it does not stop the player.
 
-The widget assumes X11 display `:0` and `~/.Xauthority`; adjust its user service for another desktop session. The player runs in an independent user service, so restarting or closing the widget does not terminate music.
+The Port button supports a different local port and clears the old token so you
+can pair again. Remote hosts, redirects and HTTP proxies are deliberately excluded.
+The remote uses `/auth/{id}`, `/api/v1/song`, `/api/v1/previous`,
+`/api/v1/toggle-play` and `/api/v1/next`. It never reads browser cookies or Google tokens.
+Upstream API bugs or changes can affect playback controls; no native player API is
+emulated. This is a remote, not a streaming service or a subscription replacement.
 
-```bash
-systemctl --user restart laptop-music-widget.service
-systemctl --user stop laptop-music-widget.service
+## Preview and development
+
+```sh
+python install_desktop.py --run --demo
 ```
 
-To stop the widget appearing after login, add `Hidden=true` to `~/.config/autostart/laptop-music-widget.desktop`. Its **Quit widget** menu closes only the widget for the current session.
+Demo mode uses synthetic text, disables controls and makes no player/network requests.
+For your own environment:
+
+```sh
+python -m pip install -r requirements-desktop.txt
+python desktop.py
+python -m unittest -v test_portable
+```
+
+Tests use a real loopback test server to check pairing, bearer tokens, redirects,
+commands and Unicode titles, plus an offscreen Qt preview and close check.
+
+## Private storage
+
+The local API token is in `connection.json` beneath:
+
+- Windows: `%APPDATA%/youtube-music-widget`
+- macOS: `~/Library/Application Support/youtube-music-widget`
+- Linux: `$XDG_CONFIG_HOME/youtube-music-widget` or `~/.config/youtube-music-widget`
+
+`MUSIC_WIDGET_HOME` overrides this directory for isolated testing. Keep it private;
+it permits control of your local player. Token files use owner-only POSIX permissions
+or the Windows user's inherited ACLs. The remote does not persist track information,
+download artwork, collect analytics or contact a hosted backend. Remove its client
+from Pear's authorized-client list to revoke access.
+
+## Original XFCE bar
+
+See [XFCE/MPRIS installation and behavior](docs/xfce.md). That version keeps its
+existing process-verified media connection and needs no HTTP server. The Linux
+installers and your existing services do not switch to the Qt version automatically.
+
+## Standalone builds
+
+```sh
+python -m pip install pyinstaller
+python -m PyInstaller --noconfirm --clean --onedir --windowed --name YouTubeMusicRemote desktop.py
+```
+
+Build on the target OS. GitHub Actions tests and builds Windows, macOS and Linux
+artifacts; download a successful build's artifact from the Actions page. They are
+unsigned builds, without Windows signing or macOS notarization. Pear must be installed
+separately. Original source is [MIT](LICENSE); Pear and Qt/PySide retain their own
+licenses and are not relicensed by this repository.
+
+Previews can be regenerated with `python desktop.py --demo --export-preview docs/desktop-preview.png`.

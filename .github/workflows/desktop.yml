@@ -1,0 +1,55 @@
+name: Desktop builds
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install -r requirements-desktop.txt pyinstaller
+      - name: Test portable app
+        run: python -m unittest -v test_portable
+      - name: Build standalone app
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name YouTubeMusicRemote desktop.py
+      - name: Smoke-test packaged app
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess, sys
+          name = 'YouTubeMusicRemote'
+          if sys.platform == 'darwin':
+              executable = Path('dist') / (name + '.app') / 'Contents/MacOS' / name
+          else:
+              executable = Path('dist') / name / (name + ('.exe' if sys.platform == 'win32' else ''))
+          subprocess.run([str(executable.resolve()), '--demo', '--export-preview', str(Path('build/preview.png').resolve())], check=True, timeout=60)
+          assert Path('build/preview.png').is_file()
+      - name: Archive app with executable permissions
+        shell: python
+        run: |
+          from pathlib import Path
+          import platform, tarfile, shutil
+          shutil.copy2('LICENSE', 'dist/LICENSE')
+          shutil.copy2('README.md', 'dist/README.md')
+          archive_path = Path('build') / ('desktop-' + platform.system() + '-' + platform.machine() + '.tar.gz')
+          with tarfile.open(archive_path, 'w:gz') as archive:
+              for entry in Path('dist').iterdir():
+                  archive.add(entry, arcname=entry.name)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YouTubeMusicRemote-${{ runner.os }}-${{ runner.arch }}
+          path: build/desktop-*.tar.gz
+          if-no-files-found: error
