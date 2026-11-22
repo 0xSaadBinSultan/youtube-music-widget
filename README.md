@@ -1,5 +1,7 @@
 # YouTube Music desktop remote
 
+[Download desktop releases](https://github.com/0xSaadBinSultan/youtube-music-widget/releases/latest)
+
 [![Build checks](https://github.com/0xSaadBinSultan/youtube-music-widget/actions/workflows/desktop.yml/badge.svg)](https://github.com/0xSaadBinSultan/youtube-music-widget/actions/workflows/desktop.yml)
 
 Desktop controls for [Pear Desktop](https://github.com/pear-devs/pear-desktop),
@@ -118,3 +120,10 @@ separately. Original source is [MIT](LICENSE); Pear and Qt/PySide retain their o
 licenses and are not relicensed by this repository.
 
 Previews can be regenerated with `python desktop.py --demo --export-preview docs/desktop-preview.png`.
+
+Maintainers can publish a verified build through **Actions → Publish tested desktop
+release → Run workflow**. Supply a new semantic version and the successful desktop
+build run ID. The release helper verifies the source branch and workflow, reuses
+those exact artifacts, and publishes SHA-256 checksums without replacing old releases.
+
+For redistributed standalone builds, run `python bundle_notices.py dist` before archiving. See [third-party notices](THIRD_PARTY.md).

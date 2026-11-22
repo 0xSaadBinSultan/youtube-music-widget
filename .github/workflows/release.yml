@@ -1,0 +1,77 @@
+name: Publish tested desktop release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New release tag (for example v1.0.0)'
+        required: true
+        type: string
+      build_run:
+        description: 'Successful Desktop builds / Java desktop builds run ID'
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      BUILD_RUN: ${{ inputs.build_run }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Publish only artifacts from a successful main-branch build
+        shell: python
+        run: |
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          repo = os.environ['GITHUB_REPOSITORY']
+          version = os.environ['RELEASE_VERSION']
+          run_id = os.environ['BUILD_RUN']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?', version):
+              raise SystemExit('Use a semantic version tag such as v1.0.0')
+          if not run_id.isdigit():
+              raise SystemExit('Build run must be a numeric Actions run ID')
+          def gh(*args):
+              return subprocess.check_output(['gh', *args], text=True)
+          run = json.loads(gh('api', f'repos/{repo}/actions/runs/{run_id}'))
+          if (run['conclusion'] != 'success' or run['head_branch'] != 'main'
+                  or run['head_repository']['full_name'] != repo
+                  or run['path'] != '.github/workflows/desktop.yml'):
+              raise SystemExit('Only successful desktop builds from this repository main branch can be released')
+          if subprocess.run(['gh', 'release', 'view', version, '--repo', repo],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+              raise SystemExit('This release already exists; existing releases are never overwritten')
+          gh('run', 'download', run_id, '--repo', repo, '--dir', 'artifacts')
+          output = Path('release-assets')
+          output.mkdir()
+          archives = sorted(Path('artifacts').rglob('*.tar.gz'))
+          if len(archives) != 3:
+              raise SystemExit('Expected exactly three OS app archives')
+          for archive in archives:
+              shutil.copy2(archive, output / archive.name)
+          jars = sorted(Path('artifacts').rglob('*.jar'))
+          if jars:
+              jar = next((p for p in jars if 'Linux' in str(p)), jars[0])
+              shutil.copy2(jar, output / 'PharmacyManagement.jar')
+          assets = sorted(output.iterdir())
+          checksums = output / 'SHA256SUMS'
+          checksums.write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
+                                       for p in assets), encoding='utf-8')
+          notes = Path('release-notes.md')
+          notes.write_text('Windows x64, Linux x64 and macOS Apple Silicon desktop builds.\n\n'
+                           'Extract the archive for your OS. These are unsigned app bundles, '
+                           'without Windows code signing or macOS notarization. See README.md '
+                           'for setup, runtime libraries, Google/Pear requirements and privacy.\n\n'
+                           'Build and test results: ' + run['html_url'] + '\n', encoding='utf-8')
+          subprocess.run(['gh', 'release', 'create', version, '--repo', repo,
+                          '--target', run['head_sha'], '--title', version + ' — Portable desktop apps',
+                          '--notes-file', str(notes), *map(str, assets), str(checksums)], check=True)

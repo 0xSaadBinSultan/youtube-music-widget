@@ -40,6 +40,8 @@ jobs:
               executable = Path('dist') / name / (name + ('.exe' if sys.platform == 'win32' else ''))
           subprocess.run([str(executable.resolve()), '--demo', '--export-preview', str(Path('build/preview.png').resolve())], check=True, timeout=60)
           assert Path('build/preview.png').is_file()
+      - name: Bundle upstream notices
+        run: python bundle_notices.py dist
       - name: Archive app with executable permissions
         shell: python
         run: |
