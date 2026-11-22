@@ -72,6 +72,18 @@ python -m unittest -v test_portable
 Tests use a real loopback test server to check pairing, bearer tokens, redirects,
 commands and Unicode titles, plus an offscreen Qt preview and close check.
 
+## Linux runtime libraries
+
+Qt still needs the operating system's graphics and font libraries, including for
+headless rendering. On Debian/Ubuntu/Kali desktops that lack them:
+
+```sh
+sudo apt install libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 fonts-dejavu-core
+```
+
+Use your distribution's equivalent packages on other Linux systems. A standalone
+build includes Python/Qt, but is not a fully static binary or a mobile application.
+
 ## Private storage
 
 The local API token is in `connection.json` beneath:
