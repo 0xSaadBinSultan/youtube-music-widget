@@ -22,6 +22,24 @@ pinning is specific to the original XFCE version. CI builds Windows x64, Linux x
 and macOS Apple Silicon; check Actions for actual results. Source installations on
 other architectures depend on Qt and Pear availability. Android and iOS are not supported.
 
+## Run a downloaded release
+
+Download the archive for your computer from **Releases**, then extract it:
+
+| Download | Open after extraction |
+| --- | --- |
+| `desktop-Windows-AMD64.tar.gz` | `YouTubeMusicRemote/YouTubeMusicRemote.exe` |
+| `desktop-Darwin-arm64.tar.gz` | `YouTubeMusicRemote.app` on an Apple Silicon Mac |
+| `desktop-Linux-x86_64.tar.gz` | `YouTubeMusicRemote/YouTubeMusicRemote` |
+
+Python and Qt are included. Keep the complete extracted folder together, including
+its internal libraries and third-party notices. Linux still needs the graphics
+libraries listed below. Intel Mac users can use the Python source setup instead.
+Release checksums are in `SHA256SUMS`; the app builds are unsigned and not notarized.
+
+Pear Desktop is still required; follow steps 1–2 under Portable setup, then pair
+from the downloaded remote. Skip the Python installation steps when using a bundle.
+
 ## Portable setup
 
 1. Install [Pear Desktop for your OS](https://github.com/pear-devs/pear-desktop/releases/latest)
